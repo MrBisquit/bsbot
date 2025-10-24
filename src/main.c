@@ -5,6 +5,7 @@
     --------------------------------------------------------------------------------------------
 
     This is my battleship (the game) bot, entirely written in C.
+    It was inspired by my other bot, nacbot.
 
     The ONLY dependencies are:
     *   memory.h
@@ -301,10 +302,59 @@ void fconsole_graphics_set(FILE* stream, uint8_t graphics) {
     Below is the actual game, and the main functionality.
 */
 
+/*
+    Pre-definitions
+*/
+
+#define PLACE_BLANK 0
+#define PLACE_X     1
+#define PLACE_Y     2
+#define HIT_BLANK   0
+#define HIT_X       1
+#define HIT_Y       2
+
+typedef struct {
+    uint8_t a_places[10][10];
+    uint8_t b_places[10][10];
+
+    uint8_t a_hitmap[10][10];
+    uint8_t b_hitmap[10][10];
+} board_t;
+
+// Utils
+board_t bs_new_board(void);
+void bs_new_board_ptr(board_t* ptr); // Usually just used to clear the board
+
 /// @brief The main function
 /// @param argc Args count
 /// @param argv Args
 /// @return Return code (0 = Success, anything else = issue/error - e.g. 1)
 int main(int argc, char* argv[]) {
 
+}
+
+/*
+    Function declarations
+*/
+
+// Utils
+/// @brief Generates a new board
+/// @return The new board
+board_t bs_new_board(void) {
+    board_t b;
+    for(uint8_t x = 0; x < 10; x++) {
+        for(uint8_t y = 0; y < 10; y++) {
+            b.a_places[x][y] = PLACE_BLANK;
+            b.b_places[x][y] = PLACE_BLANK;
+            b.a_hitmap[x][y] = HIT_BLANK;
+            b.b_hitmap[x][y] = HIT_BLANK;
+        }
+    }
+    return b;
+}
+/// @brief Generates a new board (Or clears an existing one)
+/// @param ptr The pointer to the board
+void bs_new_board_ptr(board_t* ptr) {
+    board_t b = bs_new_board();
+    memcpy(ptr, &b, sizeof(board_t));
 }
