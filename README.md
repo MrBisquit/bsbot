@@ -1,5 +1,6 @@
 # BSBOT (Battleship Bot)
 This entire project is within a single C file, `main.c`.
+It uses Raylib to display the game.
 
 ## To build
 ```
