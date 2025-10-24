@@ -5,6 +5,7 @@
     --------------------------------------------------------------------------------------------
 
     This is my battleship (the game) bot, entirely written in C.
+    It was inspired by my other bot, nacbot.
 
     The ONLY dependencies are:
     *   memory.h
