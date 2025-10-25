@@ -80,6 +80,10 @@ typedef struct {
     uint8_t b_hitmap[10][10];
 } board_t;
 
+typedef struct {
+    float possibilities[10][10];
+} bot_t;
+
 typedef enum {
     GAME_STATE_MENU,
     GAME_STATE_SELECTION,
@@ -99,6 +103,12 @@ void bs_new_board_ptr(board_t* ptr); // Usually just used to clear the board
 void bs_render_base_menu(void);
 void bs_render_board(board_t* ptr, game_render_flag_t flag);
 void bs_render_board_base(int32_t offset_x, int32_t offset_y);
+
+// Functionality
+void bs_selection(void);
+
+// Debug
+void bs_debug_render(void);
 
 // Colours
 #define SEABLUE     CLITERAL(Color){ 0, 105, 148, 255 }
@@ -142,6 +152,7 @@ int main(int argc, char* argv[]) {
                 break;
             case GAME_STATE_SELECTION:
                 bs_render_board(bs_game_board, BS_RENDER_FLAG_SELECTION);
+                bs_selection();
                 break;
             case GAME_STATE_DESTRUCTION:
 
@@ -151,6 +162,12 @@ int main(int argc, char* argv[]) {
 		if(IsKeyPressed(KEY_D)) {
             if(debug) debug = false;
             else debug = true;
+
+            if(debug) {
+                SetWindowSize(800, 650);
+            } else {
+                SetWindowSize(800, 450);
+            }
         }
 
 		if (IsKeyPressed(KEY_SPACE)) {
@@ -163,6 +180,8 @@ int main(int argc, char* argv[]) {
 		}
 
         DrawText("A project by William Dawson (MrBisquit on GitHub)\thttps://wtdawson.info", 10, h - 20, 15, RAYWHITE);
+
+        if(debug) bs_debug_render();
 
         EndDrawing();
     }
@@ -251,3 +270,74 @@ void bs_render_board_base(int32_t offset_x, int32_t offset_y) {
         }
     }
 }
+
+// Functionality
+/// @brief This is the functionality for the selection
+void bs_selection(void) {
+    static uint8_t selected_vehicle = 0;
+    static Vector2 selected_vec = { .x = 0, .y = 0 };
+    static uint8_t selected_rot = 0; // 0 = Horizontal, 1 = Vertical
+
+    if(IsKeyPressed(KEY_ONE)) {
+        selected_vehicle = PLACE_AC;
+        goto prepare;
+    } else if(IsKeyPressed(KEY_TWO)) {
+        selected_vehicle = PLACE_BS;
+        goto prepare;
+    } else if(IsKeyPressed(KEY_THREE)) {
+        selected_vehicle = PLACE_DS;
+        goto prepare;
+    } else if(IsKeyPressed(KEY_FOUR)) {
+        selected_vehicle = PLACE_SB;
+        goto prepare;
+    } else if(IsKeyPressed(KEY_FIVE)) {
+        selected_vehicle = PLACE_PB;
+        goto prepare;
+    }
+
+prepare:
+    selected_vec.x = 0;
+    selected_vec.y = 0;
+    selected_rot = 0;
+}
+
+// Debug
+void bs_debug_render(void) {
+    int w = GetScreenWidth();
+    int h = GetScreenHeight();
+
+    DrawRectangle(10, h - 225, w - 20, 200, BLUE);
+    int offset_x = 10;
+    int offset_y = h - 225;
+
+    DrawText("Debug Mode", offset_x + 10, offset_y + 10, 20, PINK);
+}
+
+/*
+    Bot functionality
+*/
+
+/*
+    The bot is (probably) the most complex part of this project.
+    All 100 (10x10) squares start on a fair possibility (0.5), and (for obvious reasons)
+    the player has to place first.
+
+    Unlike what I did for nacbot, which was to basically simulate every possible win and find
+    the most likely move that would win and place there, it would be too computationally heavy,
+    and time consuming to that for battleship. So it'll be a similar set up, but modifying the
+    values as the game progresses.
+
+    The possibilities go up and down based on both boards, since if the player attacks somewhere
+    and hits nothing, we can vaguely guess that it may be somewhere around where they placed one
+    of theirs. So we increment everything within a 3x3 area of that with some amount. Since it's
+    a guess, we don't increment it by much.
+
+    When we hit something, we can use an algorithm to guess where to place next, also incrementing
+    values in a sort of 3x3 area. It's actually more of a diamond shape that a square. Since it's
+    middle gets set to 0, since it's a hit, meaning ignore that value, then the top, left, right,
+    and bottom all increment significantly.
+    
+    When a ship is destroyed, we can decrement the possibility of everything around it by some
+    small amount, since I doubt players are likely to place them directly next to each other.
+    (Though this may be a bad idea)
+*/
