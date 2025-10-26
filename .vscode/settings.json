@@ -2,6 +2,7 @@
     "files.associations": {
         "*.ejs": "html",
         "raylib.h": "c",
-        "iosfwd": "c"
+        "iosfwd": "c",
+        "stdint.h": "c"
     }
 }

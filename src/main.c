@@ -9,8 +9,12 @@
 
     The ONLY dependencies are:
     *   memory.h
+    *   malloc.h
+    *   string.h
     *   stdio.h
     *   stdint.h
+    *   stdlib.h
+    *   time.h      This is used for the seed in the random algorithm
     *   raylib.h
 
     This uses Raylib, which is defined below.
@@ -48,7 +52,12 @@
 */
 
 #include <memory.h>
+#include <malloc.h>
+#include <string.h>
+#include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <time.h>
 #include <raylib.h>
 
 /*
@@ -84,6 +93,17 @@ typedef struct {
     float possibilities[10][10];
 } bot_t;
 
+/// @brief This is either an aircraft carrier, battleship, destroyer, submarine, or patrol boat
+typedef struct {
+    uint8_t type;
+    uint8_t rotation; // 0 = Horizontal, 1 = Vertical
+    uint8_t places; // How many places it takes up (horizontally or vertically)
+
+    // These are defined for easily working things out during rendering
+    Vector2 size_normal;
+    Vector2 size_hovering;
+} item_t;
+
 typedef enum {
     GAME_STATE_MENU,
     GAME_STATE_SELECTION,
@@ -98,17 +118,28 @@ typedef enum {
 // Utils
 board_t bs_new_board(void);
 void bs_new_board_ptr(board_t* ptr); // Usually just used to clear the board
+const char* bs_coords_to_string(Vector2 coords);
+int bs_rand(int from, int to);
 
 // Graphics
 void bs_render_base_menu(void);
 void bs_render_board(board_t* ptr, game_render_flag_t flag);
 void bs_render_board_base(int32_t offset_x, int32_t offset_y);
+// The "r" variable in these mean either (0) placed, or (1) hovering (selection)
+void bs_render_ac(int32_t offset_x, int32_t offset_y, uint8_t r);  // Aicraft carrier
+void bs_render_bs(int32_t offset_x, int32_t offset_y, uint8_t r);  // Battleship
+void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r);  // Destroyer
+void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r);  // Submarine
+void bs_render_pb(int32_t offset_x, int32_t offset_y, uint8_t r);  // Patrol Boat
 
 // Functionality
 void bs_selection(void);
 
 // Debug
 void bs_debug_render(void);
+
+// Bot
+void bs_bot_init(bot_t* ptr);
 
 // Colours
 #define SEABLUE     CLITERAL(Color){ 0, 105, 148, 255 }
@@ -117,6 +148,7 @@ void bs_debug_render(void);
 // Game definitions
 game_state_t bs_state = GAME_STATE_MENU;
 board_t* bs_game_board;
+bot_t* bs_bot;
 
 bool debug = false;
 
@@ -128,6 +160,15 @@ int main(int argc, char* argv[]) {
     InitWindow(800, 450, "BSBOT (Battleship Bot)");
     SetTargetFPS(20); // Doesn't need to be anything good
     SetWindowMinSize(800, 450);
+
+    bs_game_board = malloc(sizeof(board_t));
+    bs_bot = malloc(sizeof(bot_t));
+
+    bs_new_board_ptr(bs_game_board);
+    bs_bot_init(bs_bot);
+
+    srand(time(0));
+
     while(!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
@@ -216,6 +257,29 @@ void bs_new_board_ptr(board_t* ptr) {
     memcpy(ptr, &b, sizeof(board_t));
 }
 
+/// @brief Converts Vector2 coodinates to a string (E.g. A1)
+/// @param coords Vector2 coordinates
+/// @return The string (3 characters)
+const char* bs_coords_to_string(Vector2 coords) {
+    char* str = malloc(sizeof(char) * 3);
+    if(coords.x == 10) {
+        const char* text = (char[]){ 'A' + coords.y, '1', '0' };
+        strcpy(str, text);
+    } else {
+        const char* text = (char[]){ 'A' + coords.y, '1' + coords.x + 1, ' ' };
+        strcpy(str, text);
+    }
+    return str;
+}
+
+/// @brief Generates a random number between 2 numbers
+/// @param from From
+/// @param to To
+/// @return A number between the 2 numbers provided
+int bs_rand(int from, int to) {
+    return (rand() % to) + from;
+}
+
 // Graphics
 /// @brief Renders the main menu
 void bs_render_base_menu(void) {
@@ -247,6 +311,9 @@ void bs_render_board(board_t* ptr, game_render_flag_t flag) {
     DrawLine(w / 2, 50, w / 2, h - 38, WHITE);
 }
 
+/// @brief Renders the base of a board
+/// @param offset_x X offset (Top-left X coordinate)
+/// @param offset_y Y offset (Top-left Y coordinate)
 void bs_render_board_base(int32_t offset_x, int32_t offset_y) {
     DrawRectangle(offset_x + 32, offset_y + 32, 320 + 10, 320 + 10, SEABLUE);
     for (uint8_t i = 0; i < 11; i++)
@@ -268,6 +335,67 @@ void bs_render_board_base(int32_t offset_x, int32_t offset_y) {
 
             DrawRectangle(offset_x + ((i * 32) + (i * 1)), offset_y + ((j * 32) + (j * 1)), 32, 32, UNSELECTED);
         }
+    }
+}
+
+/// @brief Render an Aircraft carrier
+/// @param offset_x X offset (Top-left X coordinate)
+/// @param offset_y Y offset (Top-left Y coordinate)
+/// @param r (0) placed, or (1) hovering (selection)
+void bs_render_ac(int32_t offset_x, int32_t offset_y, uint8_t r) {
+    if(r == 0) {
+
+    } else if(r == 1) {
+
+    }
+}
+
+/// @brief Render a Battleship
+/// @param offset_x X offset (Top-left X coordinate)
+/// @param offset_y Y offset (Top-left Y coordinate)
+/// @param r (0) placed, or (1) hovering (selection)
+void bs_render_bs(int32_t offset_x, int32_t offset_y, uint8_t r) {
+    if(r == 0) {
+
+    } else if(r == 1) {
+        
+    }
+}
+
+/// @brief Render a Destroyer
+/// @param offset_x X offset (Top-left X coordinate)
+/// @param offset_y Y offset (Top-left Y coordinate)
+/// @param r (0) placed, or (1) hovering (selection)
+void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r) {
+    if(r == 0) {
+
+    } else if(r == 1) {
+        
+    }
+}
+
+/// @brief Render a Submarine
+/// @param offset_x X offset (Top-left X coordinate)
+/// @param offset_y Y offset (Top-left Y coordinate)
+/// @param r (0) placed, or (1) hovering (selection)
+void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r) {
+    if(r == 0) {
+
+    } else if(r == 1) {
+        
+    }
+}
+
+
+/// @brief Render a Patrol Boat
+/// @param offset_x X offset (Top-left X coordinate)
+/// @param offset_y Y offset (Top-left Y coordinate)
+/// @param r (0) placed, or (1) hovering (selection)
+void bs_render_pb(int32_t offset_x, int32_t offset_y, uint8_t r) {
+    if(r == 0) {
+
+    } else if(r == 1) {
+        
     }
 }
 
@@ -295,6 +423,8 @@ void bs_selection(void) {
         goto prepare;
     }
 
+
+
 prepare:
     selected_vec.x = 0;
     selected_vec.y = 0;
@@ -311,6 +441,15 @@ void bs_debug_render(void) {
     int offset_y = h - 225;
 
     DrawText("Debug Mode", offset_x + 10, offset_y + 10, 20, PINK);
+    for(uint8_t y = 0; y < 10; y++) {
+        for(uint8_t x = 0; x < 10; x++) {
+            uint8_t v = (uint8_t)(255 * (uint8_t)(bs_bot->possibilities[x][y] * 100) / 100);
+            Color c = (Color){ .r = v, .g = v, .b = v, .a = 255 };
+
+            DrawRectangle(offset_x + 10 + (11 * x), offset_y + 50 + (11 * y), 10, 10, c);
+        }
+    }
+    //DrawText(bs_coords_to_string((Vector2){ .x = 1, .y = 1 }), offset_x + 10, offset_y + 50, 15, PINK);
 }
 
 /*
@@ -341,3 +480,17 @@ void bs_debug_render(void) {
     small amount, since I doubt players are likely to place them directly next to each other.
     (Though this may be a bad idea)
 */
+
+/// @brief Initialise the bot
+/// @param ptr The pointer to the bot
+void bs_bot_init(bot_t* ptr) {
+    memset(ptr, 0, sizeof(bot_t));
+
+    for(uint8_t x = 0; x < 10; x++) {
+        for(uint8_t y = 0; y < 10; y++) {
+            // Accidentally made a gradient while testing
+            //ptr->possibilities[x][y] = ((float)x / (float)18) + ((float)y / (float)18);
+            ptr->possibilities[x][y] = 0.5f;
+        }
+    }
+}
