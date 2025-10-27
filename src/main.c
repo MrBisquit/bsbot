@@ -104,6 +104,12 @@ typedef struct {
     Vector2 size_hovering;
 } item_t;
 
+/// @brief Return value for a grid check
+typedef struct {
+    uint8_t grid[10][10];
+    uint8_t total;
+} grid_check_return_t;
+
 typedef enum {
     GAME_STATE_MENU,
     GAME_STATE_SELECTION,
@@ -115,22 +121,35 @@ typedef enum {
     BS_RENDER_FLAG_DESTRUCTION
 } game_render_flag_t;
 
+typedef enum {
+    BS_Aircraft_Carrier,
+    BS_Battleship,
+    BS_Destroyer,
+    BS_Submarine,
+    BS_Patrol_Boat
+} game_item_t;
+
 // Utils
 board_t bs_new_board(void);
 void bs_new_board_ptr(board_t* ptr); // Usually just used to clear the board
 const char* bs_coords_to_string(Vector2 coords);
 int bs_rand(int from, int to);
+grid_check_return_t bs_grid_check(Rectangle rect, uint32_t offset_x, uint32_t offset_y);
+item_t bs_get_item(game_item_t type);
+bool bs_rect_overlap(Rectangle a, Rectangle b);
+bool bs_point_in_rect(Vector2 point, Rectangle rect);
 
 // Graphics
 void bs_render_base_menu(void);
 void bs_render_board(board_t* ptr, game_render_flag_t flag);
 void bs_render_board_base(int32_t offset_x, int32_t offset_y);
+void bs_render_board_selection(uint32_t offset_x, uint32_t offset_y, uint8_t selection[10][10]);
 // The "r" variable in these mean either (0) placed, or (1) hovering (selection)
-void bs_render_ac(int32_t offset_x, int32_t offset_y, uint8_t r);  // Aicraft carrier
-void bs_render_bs(int32_t offset_x, int32_t offset_y, uint8_t r);  // Battleship
-void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r);  // Destroyer
-void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r);  // Submarine
-void bs_render_pb(int32_t offset_x, int32_t offset_y, uint8_t r);  // Patrol Boat
+void bs_render_ac(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  // Aicraft carrier
+void bs_render_bs(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  // Battleship
+void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  // Destroyer
+void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  // Submarine
+void bs_render_pb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  // Patrol Boat
 
 // Functionality
 void bs_selection(void);
@@ -144,6 +163,7 @@ void bs_bot_init(bot_t* ptr);
 // Colours
 #define SEABLUE     CLITERAL(Color){ 0, 105, 148, 255 }
 #define UNSELECTED  CLITERAL(Color){ 80, 80, 80, 128 }
+#define SELECTED    CLITERAL(Color){ 80, 80, 80, 200 }
 
 // Game definitions
 game_state_t bs_state = GAME_STATE_MENU;
@@ -280,6 +300,138 @@ int bs_rand(int from, int to) {
     return (rand() % to) + from;
 }
 
+/// @brief Checks which squares in the grid the rectangle is in
+/// @param rect The rectangle
+/// @param offset_x X offset (Top-left X coordinate)
+/// @param offset_y Y offset (Top-left Y coordinate)
+/// @return The squares in the grid that the rectangle is in
+grid_check_return_t bs_grid_check(Rectangle rect, uint32_t offset_x, uint32_t offset_y) {
+    grid_check_return_t grid;
+    memset(&grid, 0, sizeof(grid_check_return_t));
+
+    for(uint8_t y = 0; y < 10; y++) {
+        for(uint8_t x = 0; x < 10; x++) {
+            Rectangle a = {
+                .x = offset_x + 33 + (33 * x),
+                .y = offset_y + 33 + (33 * y),
+                .width = 32,
+                .height = 32
+            };
+
+            if(bs_rect_overlap(a, rect)) {
+                grid.grid[x][y] = true;
+                grid.total++;
+                DrawRectangle(a.x, a.y, a.width, a.height, GREEN);
+            } else if(bs_point_in_rect((Vector2) { .x = rect.x, .y = rect.y }, a)) {
+                grid.grid[x][y] = true;
+                grid.total++;
+                //DrawRectangle(a.x, a.y, a.width, a.height, GREEN);
+            }
+        }
+    }
+
+    DrawRectangle(rect.x, rect.y, rect.width + 5, rect.height + 5, BLUE);
+
+    return grid;
+}
+
+/// @brief Gets an item
+/// @param type The type of item
+/// @return The item
+item_t bs_get_item(game_item_t type) {
+    item_t item;
+
+    switch(type) {
+        case BS_Aircraft_Carrier:
+            item.type = PLACE_AC;
+            item.places = 4;
+            item.rotation = 0;
+            item.size_normal = (Vector2){ .x = 0, .y = 0 };
+            item.size_hovering = (Vector2){ .x = 10, .y = 100 };
+            break;
+        case BS_Battleship:
+            item.type = PLACE_BS;
+            break;
+        case BS_Destroyer:
+            item.type = PLACE_DS;
+            break;
+        case BS_Submarine:
+            item.type = PLACE_SB;
+            break;
+        case BS_Patrol_Boat:
+            item.type = PLACE_PB;
+            break;
+    }
+
+    return item;
+}
+
+/// @brief Check if 2 rectangles overlap
+/// @param a Rectangle A
+/// @param b Rectangle B
+/// @return If the 2 rectangles overlap
+bool bs_rect_overlap(Rectangle a, Rectangle b) {
+    float a_x1 = a.x;
+    float a_y1 = a.y;
+    float a_x2 = a.x + a.width;
+    float a_y2 = a.y + a.height;
+
+    float b_x1 = b.x;
+    float b_y1 = b.y;
+    float b_x2 = b.x + b.width;
+    float b_y2 = b.y + b.height;
+
+    /* This only selects the top and bottom squares
+    bool tl, tr, bl, br = false;
+    tl = bs_point_in_rect((Vector2){ .x = b_x1, .y = b_y1 }, a);
+    tr = bs_point_in_rect((Vector2){ .x = b_x2, .y = b_y1 }, a);
+    bl = bs_point_in_rect((Vector2){ .x = b_x1, .y = b_y2 }, a);
+    br = bs_point_in_rect((Vector2){ .x = b_x2, .y = b_y2 }, a);
+
+    if((tl && tr) || (tl && bl) || (bl && br) || (br && tr))
+        return true;
+    else
+        return false;*/
+
+    /*if(a_x1 < b_x2 && a_x2 > b_x1 && a_y1 > b_y2 && a_y2 < b_y1) {
+        return true;
+    } else {
+        return false;
+    }*/
+
+    if(a_x1 <= b_x2 && a_x2 >= b_x1 && a_y1 <= b_y2 && a_y2 >= b_y1) {
+        return true;
+    } else {
+        return false;
+    }
+
+    // indicates whether or not the specified rectangle intersects with this rectangle
+/*constexpr bool intersects(const rectx& rect) const {
+    return (left() <= rect.right() && right()>= rect.left() &&
+        top() <= rect.bottom() && bottom() >= rect.top() ); 
+}*/
+}
+
+/// @brief Check is a point is inside a rectangle
+/// @param point The point to check
+/// @param rect The rectangle
+/// @return If the point is inside the rectangle
+bool bs_point_in_rect(Vector2 point, Rectangle rect) {
+    float px = point.x;
+    float py = point.y;
+
+    float x1 = rect.x;
+    float y1 = rect.y;
+    float x2 = rect.x + rect.width;
+    float y2 = rect.y + rect.height;
+
+    if(px >= x1 && px <= x2 && py >= y1 && py <= y2) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 // Graphics
 /// @brief Renders the main menu
 void bs_render_base_menu(void) {
@@ -338,15 +490,38 @@ void bs_render_board_base(int32_t offset_x, int32_t offset_y) {
     }
 }
 
+/// @brief Renders a highlighted selection of the grid (for selection)
+/// @note This is designed to be layered on top of `bs_render_board_base`
+/// @param offset_x  X offset (Top-left X coordinate)
+/// @param offset_y Y offset (Top-left Y coordinate)
+/// @param selection The selected grid
+void bs_render_board_selection(uint32_t offset_x, uint32_t offset_y, uint8_t selection[10][10]) {
+    for(uint8_t y = 0; y < 11; y++) {
+        for(uint8_t x = 0; x < 11; x++) {
+            if(y == 0 || x == 0) continue; // Skip
+
+            if(selection[x][y] == true) {
+                DrawRectangle(offset_x + ((y * 32) + (y * 1)), offset_y + ((x * 32) + (x * 1)), 32, 32, SELECTED);
+            }
+        }
+    }
+}
+
 /// @brief Render an Aircraft carrier
 /// @param offset_x X offset (Top-left X coordinate)
 /// @param offset_y Y offset (Top-left Y coordinate)
 /// @param r (0) placed, or (1) hovering (selection)
-void bs_render_ac(int32_t offset_x, int32_t offset_y, uint8_t r) {
+/// @param rot Rotation (0 = Horizontal, 1 = Vertical)
+void bs_render_ac(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
     if(r == 0) {
 
     } else if(r == 1) {
-
+        uint8_t width = 10;
+        uint8_t height = 10;
+        if(rot == 0)
+            DrawRectangle(offset_x, offset_y, width, height, RED);
+        else
+            DrawRectangle(offset_x, offset_y, height, width, RED);
     }
 }
 
@@ -354,7 +529,8 @@ void bs_render_ac(int32_t offset_x, int32_t offset_y, uint8_t r) {
 /// @param offset_x X offset (Top-left X coordinate)
 /// @param offset_y Y offset (Top-left Y coordinate)
 /// @param r (0) placed, or (1) hovering (selection)
-void bs_render_bs(int32_t offset_x, int32_t offset_y, uint8_t r) {
+/// @param rot Rotation (0 = Horizontal, 1 = Vertical)
+void bs_render_bs(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
     if(r == 0) {
 
     } else if(r == 1) {
@@ -366,7 +542,8 @@ void bs_render_bs(int32_t offset_x, int32_t offset_y, uint8_t r) {
 /// @param offset_x X offset (Top-left X coordinate)
 /// @param offset_y Y offset (Top-left Y coordinate)
 /// @param r (0) placed, or (1) hovering (selection)
-void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r) {
+/// @param rot Rotation (0 = Horizontal, 1 = Vertical)
+void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
     if(r == 0) {
 
     } else if(r == 1) {
@@ -378,7 +555,8 @@ void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r) {
 /// @param offset_x X offset (Top-left X coordinate)
 /// @param offset_y Y offset (Top-left Y coordinate)
 /// @param r (0) placed, or (1) hovering (selection)
-void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r) {
+/// @param rot Rotation (0 = Horizontal, 1 = Vertical)
+void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
     if(r == 0) {
 
     } else if(r == 1) {
@@ -391,7 +569,8 @@ void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r) {
 /// @param offset_x X offset (Top-left X coordinate)
 /// @param offset_y Y offset (Top-left Y coordinate)
 /// @param r (0) placed, or (1) hovering (selection)
-void bs_render_pb(int32_t offset_x, int32_t offset_y, uint8_t r) {
+/// @param rot Rotation (0 = Horizontal, 1 = Vertical)
+void bs_render_pb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
     if(r == 0) {
 
     } else if(r == 1) {
@@ -405,25 +584,59 @@ void bs_selection(void) {
     static uint8_t selected_vehicle = 0;
     static Vector2 selected_vec = { .x = 0, .y = 0 };
     static uint8_t selected_rot = 0; // 0 = Horizontal, 1 = Vertical
+    static item_t item;
 
     if(IsKeyPressed(KEY_ONE)) {
         selected_vehicle = PLACE_AC;
+        item = bs_get_item(BS_Aircraft_Carrier);
         goto prepare;
     } else if(IsKeyPressed(KEY_TWO)) {
         selected_vehicle = PLACE_BS;
+        item = bs_get_item(BS_Battleship);
         goto prepare;
     } else if(IsKeyPressed(KEY_THREE)) {
         selected_vehicle = PLACE_DS;
+        item = bs_get_item(BS_Destroyer);
         goto prepare;
     } else if(IsKeyPressed(KEY_FOUR)) {
         selected_vehicle = PLACE_SB;
+        item = bs_get_item(BS_Submarine);
         goto prepare;
     } else if(IsKeyPressed(KEY_FIVE)) {
         selected_vehicle = PLACE_PB;
+        item = bs_get_item(BS_Patrol_Boat);
         goto prepare;
     }
 
+    int cx = GetMouseX();
+    int cy = GetMouseY();
 
+    Rectangle rect = (Rectangle) {
+        .x = cx - (item.size_hovering.x / 2),
+        .y = cy - (item.size_hovering.y / 2),
+        .width = item.size_hovering.x,
+        .height = item.size_hovering.y
+    };
+    grid_check_return_t result = bs_grid_check(rect, 20, 50);
+    bs_render_board_selection(20, 50, result.grid);
+
+    switch(selected_vehicle) {
+        case 1:
+            bs_render_ac(cx - (item.size_hovering.x / 2), cy - (item.size_hovering.y / 2), 1, 0);
+            break;
+        case 2:
+
+            break;
+        case 3:
+
+            break;
+        case 4:
+
+            break;
+        case 5:
+
+            break;
+    }
 
 prepare:
     selected_vec.x = 0;
