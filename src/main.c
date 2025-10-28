@@ -321,7 +321,7 @@ grid_check_return_t bs_grid_check(Rectangle rect, uint32_t offset_x, uint32_t of
             if(bs_rect_overlap(a, rect)) {
                 grid.grid[x][y] = true;
                 grid.total++;
-                DrawRectangle(a.x, a.y, a.width, a.height, GREEN);
+                //DrawRectangle(a.x, a.y, a.width, a.height, GREEN);
             } else if(bs_point_in_rect((Vector2) { .x = rect.x, .y = rect.y }, a)) {
                 grid.grid[x][y] = true;
                 grid.total++;
@@ -330,7 +330,7 @@ grid_check_return_t bs_grid_check(Rectangle rect, uint32_t offset_x, uint32_t of
         }
     }
 
-    DrawRectangle(rect.x, rect.y, rect.width + 5, rect.height + 5, BLUE);
+    //DrawRectangle(rect.x, rect.y, rect.width + 5, rect.height + 5, BLUE);
 
     return grid;
 }
@@ -500,7 +500,7 @@ void bs_render_board_selection(uint32_t offset_x, uint32_t offset_y, uint8_t sel
         for(uint8_t x = 0; x < 11; x++) {
             if(y == 0 || x == 0) continue; // Skip
 
-            if(selection[x][y] == true) {
+            if(selection[y - 1][x - 1] == true) {
                 DrawRectangle(offset_x + ((y * 32) + (y * 1)), offset_y + ((x * 32) + (x * 1)), 32, 32, SELECTED);
             }
         }
@@ -513,11 +513,17 @@ void bs_render_board_selection(uint32_t offset_x, uint32_t offset_y, uint8_t sel
 /// @param r (0) placed, or (1) hovering (selection)
 /// @param rot Rotation (0 = Horizontal, 1 = Vertical)
 void bs_render_ac(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
+    item_t item = bs_get_item(BS_Aircraft_Carrier);
     if(r == 0) {
-
+        uint8_t width = item.size_normal.x;
+        uint8_t height = item.size_normal.y;
+        if(rot == 0)
+            DrawRectangle(offset_x, offset_y, width, height, RED);
+        else
+            DrawRectangle(offset_x, offset_y, height, width, RED);
     } else if(r == 1) {
-        uint8_t width = 10;
-        uint8_t height = 10;
+        uint8_t width = item.size_hovering.x;
+        uint8_t height = item.size_hovering.y;
         if(rot == 0)
             DrawRectangle(offset_x, offset_y, width, height, RED);
         else
@@ -606,7 +612,17 @@ void bs_selection(void) {
         selected_vehicle = PLACE_PB;
         item = bs_get_item(BS_Patrol_Boat);
         goto prepare;
+    } else if(IsKeyPressed(KEY_R)) {
+        if(selected_rot == 0) {
+            selected_rot = 1;
+            item.rotation = 1;
+        } else {
+            selected_rot = 0;
+            item.rotation = 0;
+        }
     }
+
+    // TODO: Figure out why this resets back to Horizontal (`selected_rot` = 0)
 
     int cx = GetMouseX();
     int cy = GetMouseY();
@@ -617,12 +633,18 @@ void bs_selection(void) {
         .width = item.size_hovering.x,
         .height = item.size_hovering.y
     };
+
+    if(selected_rot == 1) {
+        rect.width = item.size_hovering.y;
+        rect.height = item.size_hovering.x;
+    }
+
     grid_check_return_t result = bs_grid_check(rect, 20, 50);
     bs_render_board_selection(20, 50, result.grid);
 
     switch(selected_vehicle) {
         case 1:
-            bs_render_ac(cx - (item.size_hovering.x / 2), cy - (item.size_hovering.y / 2), 1, 0);
+            bs_render_ac(cx - (item.size_hovering.x / 2), cy - (item.size_hovering.y / 2), 1, selected_rot);
             break;
         case 2:
 
