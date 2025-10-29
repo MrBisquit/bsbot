@@ -622,10 +622,13 @@ void bs_selection(void) {
         }
     }
 
-    // TODO: Figure out why this resets back to Horizontal (`selected_rot` = 0)
+    // TODO: Fix rotation (Vertical mode)
 
     int cx = GetMouseX();
     int cy = GetMouseY();
+
+    uint32_t offset_x = cx - (item.size_hovering.x / 2);
+    uint32_t offset_y = cy - (item.size_hovering.y / 2);
 
     Rectangle rect = (Rectangle) {
         .x = cx - (item.size_hovering.x / 2),
@@ -635,8 +638,13 @@ void bs_selection(void) {
     };
 
     if(selected_rot == 1) {
+        rect.x = cy - (item.size_hovering.y / 2);
+        rect.y = cx - (item.size_hovering.x / 2);
         rect.width = item.size_hovering.y;
         rect.height = item.size_hovering.x;
+
+        //offset_x = cy - (item.size_hovering.y / 2);
+        //offset_y = cx - (item.size_hovering.x / 2);
     }
 
     grid_check_return_t result = bs_grid_check(rect, 20, 50);
@@ -644,7 +652,7 @@ void bs_selection(void) {
 
     switch(selected_vehicle) {
         case 1:
-            bs_render_ac(cx - (item.size_hovering.x / 2), cy - (item.size_hovering.y / 2), 1, selected_rot);
+            bs_render_ac(offset_x, offset_y, 1, selected_rot);
             break;
         case 2:
 
@@ -660,10 +668,15 @@ void bs_selection(void) {
             break;
     }
 
+    goto end;
+
 prepare:
     selected_vec.x = 0;
     selected_vec.y = 0;
     selected_rot = 0;
+
+end:
+    return;
 }
 
 // Debug
