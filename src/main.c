@@ -159,6 +159,7 @@ void bs_render_bs(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  
 void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  // Destroyer
 void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  // Submarine
 void bs_render_pb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  // Patrol Boat
+void bs_render_item(uint8_t type, int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot); // Render the selected item
 
 // Functionality
 void bs_selection(void);
@@ -359,13 +360,17 @@ item_t bs_get_item(game_item_t type) {
     switch(type) {
         case BS_Aircraft_Carrier:
             item.type = PLACE_AC;
-            item.places = 4;
+            item.places = 5;
             item.rotation = 0;
             item.size_normal = (Vector2){ .x = 0, .y = 0 };
-            item.size_hovering = (Vector2){ .x = 10, .y = 100 };
+            item.size_hovering = (Vector2){ .x = 10, .y = 135 };
             break;
         case BS_Battleship:
             item.type = PLACE_BS;
+            item.places = 4;
+            item.rotation = 0;
+            item.size_hovering = (Vector2){ .x = 0, .y = 0 };
+            item.size_normal = (Vector2){ .x = 10, .y = 100 };
             break;
         case BS_Destroyer:
             item.type = PLACE_DS;
@@ -568,10 +573,21 @@ void bs_render_ac(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
 /// @param r (0) placed, or (1) hovering (selection)
 /// @param rot Rotation (0 = Horizontal, 1 = Vertical)
 void bs_render_bs(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
+    item_t item = bs_get_item(BS_Battleship);
     if(r == 0) {
-
+        uint8_t width = item.size_normal.x;
+        uint8_t height = item.size_normal.y;
+        if(rot == 0)
+            DrawRectangle(offset_x, offset_y, width, height, RED);
+        else
+            DrawRectangle(offset_x, offset_y, height, width, RED);
     } else if(r == 1) {
-        
+        uint8_t width = item.size_hovering.x;
+        uint8_t height = item.size_hovering.y;
+        if(rot == 0)
+            DrawRectangle(offset_x, offset_y, width, height, RED);
+        else
+            DrawRectangle(offset_x, offset_y, height, width, RED);
     }
 }
 
@@ -581,10 +597,21 @@ void bs_render_bs(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
 /// @param r (0) placed, or (1) hovering (selection)
 /// @param rot Rotation (0 = Horizontal, 1 = Vertical)
 void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
+    item_t item = bs_get_item(BS_Destroyer);
     if(r == 0) {
-
+        uint8_t width = item.size_normal.x;
+        uint8_t height = item.size_normal.y;
+        if(rot == 0)
+            DrawRectangle(offset_x, offset_y, width, height, RED);
+        else
+            DrawRectangle(offset_x, offset_y, height, width, RED);
     } else if(r == 1) {
-        
+        uint8_t width = item.size_hovering.x;
+        uint8_t height = item.size_hovering.y;
+        if(rot == 0)
+            DrawRectangle(offset_x, offset_y, width, height, RED);
+        else
+            DrawRectangle(offset_x, offset_y, height, width, RED);
     }
 }
 
@@ -594,10 +621,21 @@ void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
 /// @param r (0) placed, or (1) hovering (selection)
 /// @param rot Rotation (0 = Horizontal, 1 = Vertical)
 void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
+    item_t item = bs_get_item(BS_Submarine);
     if(r == 0) {
-
+        uint8_t width = item.size_normal.x;
+        uint8_t height = item.size_normal.y;
+        if(rot == 0)
+            DrawRectangle(offset_x, offset_y, width, height, RED);
+        else
+            DrawRectangle(offset_x, offset_y, height, width, RED);
     } else if(r == 1) {
-        
+        uint8_t width = item.size_hovering.x;
+        uint8_t height = item.size_hovering.y;
+        if(rot == 0)
+            DrawRectangle(offset_x, offset_y, width, height, RED);
+        else
+            DrawRectangle(offset_x, offset_y, height, width, RED);
     }
 }
 
@@ -608,10 +646,47 @@ void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
 /// @param r (0) placed, or (1) hovering (selection)
 /// @param rot Rotation (0 = Horizontal, 1 = Vertical)
 void bs_render_pb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
+    item_t item = bs_get_item(BS_Patrol_Boat);
     if(r == 0) {
-
+        uint8_t width = item.size_normal.x;
+        uint8_t height = item.size_normal.y;
+        if(rot == 0)
+            DrawRectangle(offset_x, offset_y, width, height, RED);
+        else
+            DrawRectangle(offset_x, offset_y, height, width, RED);
     } else if(r == 1) {
-        
+        uint8_t width = item.size_hovering.x;
+        uint8_t height = item.size_hovering.y;
+        if(rot == 0)
+            DrawRectangle(offset_x, offset_y, width, height, RED);
+        else
+            DrawRectangle(offset_x, offset_y, height, width, RED);
+    }
+}
+
+/// @brief Renders the selected item
+/// @param type The item type to render
+/// @param offset_x X offset (Top-left X coordinate)
+/// @param offset_y Y offset (Top-left Y coordinate)
+/// @param r (0) placed, or (1) hovering (selection)
+/// @param rot Rotation (0 = Horizontal, 1 = Vertical)
+void bs_render_item(uint8_t type, int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
+    switch(type) {
+        case 1:
+            bs_render_ac(offset_x, offset_y, r, rot);
+            break;
+        case 2:
+            bs_render_bs(offset_x, offset_y, r, rot);
+            break;
+        case 3:
+            bs_render_ds(offset_x, offset_y, r, rot);
+            break;
+        case 4:
+            bs_render_sb(offset_x, offset_y, r, rot);
+            break;
+        case 5:
+            bs_render_pb(offset_x, offset_y, r, rot);
+            break;
     }
 }
 
@@ -711,23 +786,7 @@ void bs_selection(void) {
     grid_check_return_t result = bs_grid_check(rect, 20, 50);
     bs_render_board_selection(20, 50, result.grid);
 
-    switch(selected_vehicle) {
-        case 1:
-            bs_render_ac(offset_x, offset_y, 1, selected_rot);
-            break;
-        case 2:
-
-            break;
-        case 3:
-
-            break;
-        case 4:
-
-            break;
-        case 5:
-
-            break;
-    }
+    bs_render_item(selected_vehicle, offset_x, offset_y, 1, selected_rot);
 
     goto end;
 
