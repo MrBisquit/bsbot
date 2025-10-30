@@ -362,35 +362,35 @@ item_t bs_get_item(game_item_t type) {
             item.type = PLACE_AC;
             item.places = 5;
             item.rotation = 0;
-            item.size_normal = (Vector2){ .x = 0, .y = 0 };
+            item.size_normal = (Vector2){ .x = 32 / 2, .y = (32 * 5) - (32 / 2) };
             item.size_hovering = (Vector2){ .x = 10, .y = 135 };
             break;
         case BS_Battleship:
             item.type = PLACE_BS;
             item.places = 4;
             item.rotation = 0;
-            item.size_normal = (Vector2){ .x = 0, .y = 0 };
+            item.size_normal = (Vector2){ .x = 32 / 2, .y = (32 * 4) - (32 / 2) };
             item.size_hovering = (Vector2){ .x = 10, .y = 100 };
             break;
         case BS_Destroyer:
             item.type = PLACE_DS;
             item.places = 3;
             item.rotation = 0;
-            item.size_normal = (Vector2){ .x = 0, .y = 0 };
+            item.size_normal = (Vector2){ .x = 32 / 2, .y = (32 * 3) - (32 / 2) };
             item.size_hovering = (Vector2){ .x = 10, .y = 65 };
             break;
         case BS_Submarine:
             item.type = PLACE_SB;
             item.places = 3;
             item.rotation = 0;
-            item.size_normal = (Vector2){ .x = 0, .y = 0 };
+            item.size_normal = (Vector2){ .x = 32 / 2, .y = (32 * 3) - (32 / 2) };
             item.size_hovering = (Vector2){ .x = 10, .y = 65 };
             break;
         case BS_Patrol_Boat:
             item.type = PLACE_PB;
             item.places = 2;
             item.rotation = 0;
-            item.size_normal = (Vector2){ .x = 0, .y = 0 };
+            item.size_normal = (Vector2){ .x = 32 / 2, .y = (32 * 2) - (32 / 2) };
             item.size_hovering = (Vector2){ .x = 10, .y = 35 };
             break;
     }
@@ -767,6 +767,8 @@ void bs_selection(void) {
 
             grid_check_return_t _result = bs_grid_check(_rect, 20, 50);
             bs_render_board_selection(20, 50, _result.grid);
+
+            bs_render_item(bs_game_board->a_items[i].type, _rect.x, _rect.y, 0, bs_game_board->a_items[i].rotation);
         }
     }
 
