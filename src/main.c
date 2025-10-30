@@ -369,17 +369,29 @@ item_t bs_get_item(game_item_t type) {
             item.type = PLACE_BS;
             item.places = 4;
             item.rotation = 0;
-            item.size_hovering = (Vector2){ .x = 0, .y = 0 };
-            item.size_normal = (Vector2){ .x = 10, .y = 100 };
+            item.size_normal = (Vector2){ .x = 0, .y = 0 };
+            item.size_hovering = (Vector2){ .x = 10, .y = 100 };
             break;
         case BS_Destroyer:
             item.type = PLACE_DS;
+            item.places = 3;
+            item.rotation = 0;
+            item.size_normal = (Vector2){ .x = 0, .y = 0 };
+            item.size_hovering = (Vector2){ .x = 10, .y = 65 };
             break;
         case BS_Submarine:
             item.type = PLACE_SB;
+            item.places = 3;
+            item.rotation = 0;
+            item.size_normal = (Vector2){ .x = 0, .y = 0 };
+            item.size_hovering = (Vector2){ .x = 10, .y = 65 };
             break;
         case BS_Patrol_Boat:
             item.type = PLACE_PB;
+            item.places = 2;
+            item.rotation = 0;
+            item.size_normal = (Vector2){ .x = 0, .y = 0 };
+            item.size_hovering = (Vector2){ .x = 10, .y = 35 };
             break;
     }
 
@@ -578,16 +590,16 @@ void bs_render_bs(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
         uint8_t width = item.size_normal.x;
         uint8_t height = item.size_normal.y;
         if(rot == 0)
-            DrawRectangle(offset_x, offset_y, width, height, RED);
+            DrawRectangle(offset_x, offset_y, width, height, GREEN);
         else
-            DrawRectangle(offset_x, offset_y, height, width, RED);
+            DrawRectangle(offset_x, offset_y, height, width, GREEN);
     } else if(r == 1) {
         uint8_t width = item.size_hovering.x;
         uint8_t height = item.size_hovering.y;
         if(rot == 0)
-            DrawRectangle(offset_x, offset_y, width, height, RED);
+            DrawRectangle(offset_x, offset_y, width, height, GREEN);
         else
-            DrawRectangle(offset_x, offset_y, height, width, RED);
+            DrawRectangle(offset_x, offset_y, height, width, GREEN);
     }
 }
 
@@ -602,16 +614,16 @@ void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
         uint8_t width = item.size_normal.x;
         uint8_t height = item.size_normal.y;
         if(rot == 0)
-            DrawRectangle(offset_x, offset_y, width, height, RED);
+            DrawRectangle(offset_x, offset_y, width, height, PURPLE);
         else
-            DrawRectangle(offset_x, offset_y, height, width, RED);
+            DrawRectangle(offset_x, offset_y, height, width, PURPLE);
     } else if(r == 1) {
         uint8_t width = item.size_hovering.x;
         uint8_t height = item.size_hovering.y;
         if(rot == 0)
-            DrawRectangle(offset_x, offset_y, width, height, RED);
+            DrawRectangle(offset_x, offset_y, width, height, PURPLE);
         else
-            DrawRectangle(offset_x, offset_y, height, width, RED);
+            DrawRectangle(offset_x, offset_y, height, width, PURPLE);
     }
 }
 
@@ -626,16 +638,16 @@ void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
         uint8_t width = item.size_normal.x;
         uint8_t height = item.size_normal.y;
         if(rot == 0)
-            DrawRectangle(offset_x, offset_y, width, height, RED);
+            DrawRectangle(offset_x, offset_y, width, height, YELLOW);
         else
-            DrawRectangle(offset_x, offset_y, height, width, RED);
+            DrawRectangle(offset_x, offset_y, height, width, YELLOW);
     } else if(r == 1) {
         uint8_t width = item.size_hovering.x;
         uint8_t height = item.size_hovering.y;
         if(rot == 0)
-            DrawRectangle(offset_x, offset_y, width, height, RED);
+            DrawRectangle(offset_x, offset_y, width, height, YELLOW);
         else
-            DrawRectangle(offset_x, offset_y, height, width, RED);
+            DrawRectangle(offset_x, offset_y, height, width, YELLOW);
     }
 }
 
@@ -651,16 +663,16 @@ void bs_render_pb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot) {
         uint8_t width = item.size_normal.x;
         uint8_t height = item.size_normal.y;
         if(rot == 0)
-            DrawRectangle(offset_x, offset_y, width, height, RED);
+            DrawRectangle(offset_x, offset_y, width, height, BLUE);
         else
-            DrawRectangle(offset_x, offset_y, height, width, RED);
+            DrawRectangle(offset_x, offset_y, height, width, BLUE);
     } else if(r == 1) {
         uint8_t width = item.size_hovering.x;
         uint8_t height = item.size_hovering.y;
         if(rot == 0)
-            DrawRectangle(offset_x, offset_y, width, height, RED);
+            DrawRectangle(offset_x, offset_y, width, height, BLUE);
         else
-            DrawRectangle(offset_x, offset_y, height, width, RED);
+            DrawRectangle(offset_x, offset_y, height, width, BLUE);
     }
 }
 
@@ -736,6 +748,9 @@ void bs_selection(void) {
     // Render any pre-existing items on the board
     for(uint8_t i = 0; i < 5; i++) {
         if(bs_game_board->a_items[i].type != PLACE_HIT_INVALID) {
+            // TODO: Change this so instead of having the X and Y coordinates
+            //       be actual coordinates, make it so it's 0-10
+
             Rectangle _rect = (Rectangle) {
                 .x = bs_game_board->a_items[i].pos.x,
                 .y = bs_game_board->a_items[i].pos.y,
@@ -743,7 +758,7 @@ void bs_selection(void) {
                 .width = item.size_normal.y
             };
 
-            if(selected_rot) {
+            if(bs_game_board->a_items[i].rotation == 1) {
                 _rect.x = bs_game_board->a_items[i].pos.y;
                 _rect.y = bs_game_board->a_items[i].pos.x;
                 _rect.width = bs_game_board->a_items[i].size_normal.y;
@@ -754,8 +769,6 @@ void bs_selection(void) {
             bs_render_board_selection(20, 50, _result.grid);
         }
     }
-
-    // TODO: Fix rotation (Vertical mode)
 
     int cx = GetMouseX();
     int cy = GetMouseY();
@@ -771,13 +784,13 @@ void bs_selection(void) {
     };
 
     if(selected_rot == 1) {
-        rect.x = cy - (item.size_hovering.y / 2);
-        rect.y = cx - (item.size_hovering.x / 2);
+        rect.x = cx - (item.size_hovering.y / 2);
+        rect.y = cy - (item.size_hovering.x / 2);
         rect.width = item.size_hovering.y;
         rect.height = item.size_hovering.x;
 
-        //offset_x = cy - (item.size_hovering.y / 2);
-        //offset_y = cx - (item.size_hovering.x / 2);
+        offset_x = cx - (item.size_hovering.y / 2);
+        offset_y = cy - (item.size_hovering.x / 2);
     }
 
     item.pos.x = rect.x;
