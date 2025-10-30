@@ -81,13 +81,7 @@
 #define HIT_SB      4 // Submarine
 #define HIT_PB      5 // Patrol Boat
 
-typedef struct {
-    uint8_t a_places[10][10];
-    uint8_t b_places[10][10];
-
-    uint8_t a_hitmap[10][10];
-    uint8_t b_hitmap[10][10];
-} board_t;
+#define PLACE_HIT_INVALID 0xFF
 
 typedef struct {
     float possibilities[10][10];
@@ -102,7 +96,21 @@ typedef struct {
     // These are defined for easily working things out during rendering
     Vector2 size_normal;
     Vector2 size_hovering;
+
+    // Position (This can be ignored unless used in rendering)
+    Vector2 pos;
 } item_t;
+
+typedef struct {
+    uint8_t a_places[10][10];
+    uint8_t b_places[10][10];
+
+    uint8_t a_hitmap[10][10];
+    uint8_t b_hitmap[10][10];
+
+    item_t a_items[5];
+    item_t b_items[5];
+} board_t;
 
 /// @brief Return value for a grid check
 typedef struct {
@@ -138,6 +146,7 @@ grid_check_return_t bs_grid_check(Rectangle rect, uint32_t offset_x, uint32_t of
 item_t bs_get_item(game_item_t type);
 bool bs_rect_overlap(Rectangle a, Rectangle b);
 bool bs_point_in_rect(Vector2 point, Rectangle rect);
+bool bs_add_item(item_t array[5], item_t item);
 
 // Graphics
 void bs_render_base_menu(void);
@@ -268,6 +277,12 @@ board_t bs_new_board(void) {
             b.b_hitmap[x][y] = HIT_BLANK;
         }
     }
+
+    for(uint8_t i = 0; i < 5; i++) {
+        b.a_items[i].type = PLACE_HIT_INVALID;
+        b.b_items[i].type = PLACE_HIT_INVALID;
+    }
+
     return b;
 }
 /// @brief Generates a new board (Or clears an existing one)
@@ -430,6 +445,22 @@ bool bs_point_in_rect(Vector2 point, Rectangle rect) {
     } else {
         return false;
     }
+}
+
+/// @brief Adds an item into the array (if it can fit)
+/// @param array The array
+/// @param item The item to add into the array
+/// @return Returns `true` if it could fit it into the array, `false` if not
+bool bs_add_item(item_t array[5], item_t item) {
+    for(uint8_t i = 0; i < 5; i++) {
+        if(array[i].type == PLACE_HIT_INVALID) {
+            memcpy(&array[i], &item, sizeof(item_t));
+
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // Graphics
@@ -620,6 +651,33 @@ void bs_selection(void) {
             selected_rot = 0;
             item.rotation = 0;
         }
+    } else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        bs_add_item(bs_game_board->a_items, item);
+
+        selected_vehicle = 0;
+        goto prepare;
+    }
+
+    // Render any pre-existing items on the board
+    for(uint8_t i = 0; i < 5; i++) {
+        if(bs_game_board->a_items[i].type != PLACE_HIT_INVALID) {
+            Rectangle _rect = (Rectangle) {
+                .x = bs_game_board->a_items[i].pos.x,
+                .y = bs_game_board->a_items[i].pos.y,
+                .width = item.size_normal.x,
+                .width = item.size_normal.y
+            };
+
+            if(selected_rot) {
+                _rect.x = bs_game_board->a_items[i].pos.y;
+                _rect.y = bs_game_board->a_items[i].pos.x;
+                _rect.width = bs_game_board->a_items[i].size_normal.y;
+                _rect.height = bs_game_board->a_items[i].size_normal.x;
+            }
+
+            grid_check_return_t _result = bs_grid_check(_rect, 20, 50);
+            bs_render_board_selection(20, 50, _result.grid);
+        }
     }
 
     // TODO: Fix rotation (Vertical mode)
@@ -646,6 +704,9 @@ void bs_selection(void) {
         //offset_x = cy - (item.size_hovering.y / 2);
         //offset_y = cx - (item.size_hovering.x / 2);
     }
+
+    item.pos.x = rect.x;
+    item.pos.y = rect.y;
 
     grid_check_return_t result = bs_grid_check(rect, 20, 50);
     bs_render_board_selection(20, 50, result.grid);
