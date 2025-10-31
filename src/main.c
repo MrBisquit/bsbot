@@ -99,6 +99,7 @@ typedef struct {
 
     // Position (This can be ignored unless used in rendering)
     Vector2 pos;
+    Vector2 relative_pos;
 } item_t;
 
 typedef struct {
@@ -147,6 +148,8 @@ item_t bs_get_item(game_item_t type);
 bool bs_rect_overlap(Rectangle a, Rectangle b);
 bool bs_point_in_rect(Vector2 point, Rectangle rect);
 bool bs_add_item(item_t array[5], item_t item);
+bool bs_check_add_item(uint8_t grid[10][10], item_t item);
+Vector2 bs_get_grid_pos(int32_t offset_x, int32_t offset_y, Vector2 pos);
 
 // Graphics
 void bs_render_base_menu(void);
@@ -198,6 +201,9 @@ int main(int argc, char* argv[]) {
     bs_bot_init(bs_bot);
 
     srand(time(0));
+
+    // Load textures
+    // LoadImageFromMemory()
 
     while(!WindowShouldClose()) {
         BeginDrawing();
@@ -478,6 +484,48 @@ bool bs_add_item(item_t array[5], item_t item) {
     }
 
     return false;
+}
+
+/// @brief Checks if the player can place something on the grid
+/// @param grid The grid
+/// @param item The item to check
+/// @return Returns `true` if it can fit on the grid, `false` if not
+bool bs_check_add_item(uint8_t grid[10][10], item_t item) {
+    if(item.rotation == 0) {
+        if(item.pos.y + item.places > 10) return false;
+    } else if(item.rotation == 1) {
+        if(item.pos.x + item.places > 10) return false;
+    }
+}
+
+/// @brief Gets the relative coordinates of a position on a grid from the provided position
+/// @param offset_x X offset (Top-left X coordinate)
+/// @param offset_y Y offset (Top-left Y coordinate)
+/// @param pos The position
+/// @return The relative grid coordinates to the provided position
+Vector2 bs_get_grid_pos(int32_t offset_x, int32_t offset_y, Vector2 pos) {
+    for(uint8_t y = 0; y < 10; y++) {
+        for(uint8_t x = 0; x < 10; x++) {
+            int32_t start_x = offset_x + ((x * 32) + (x * 1));
+            int32_t start_y = offset_y + ((y * 32) + (y * 1));
+            int32_t end_x = start_x + 32;
+            int32_t end_y = start_y + 32;
+
+            Rectangle rect = (Rectangle) {
+                .x = start_x,
+                .y = start_y,
+                .width = 32,
+                .height = 32
+            };
+
+            if(bs_point_in_rect(pos, rect)) {
+                return (Vector2) {
+                    .x = x,
+                    .y = y
+                };
+            }
+        }
+    }
 }
 
 // Graphics
@@ -774,6 +822,7 @@ void bs_selection(void) {
 
     int cx = GetMouseX();
     int cy = GetMouseY();
+    Vector2 c = (Vector2) { .x = cx, .y = cy };
 
     uint32_t offset_x = cx - (item.size_hovering.x / 2);
     uint32_t offset_y = cy - (item.size_hovering.y / 2);
@@ -797,6 +846,10 @@ void bs_selection(void) {
 
     item.pos.x = rect.x;
     item.pos.y = rect.y;
+
+    Vector2 coords = bs_get_grid_pos(20, 50, c);
+    item.relative_pos.x = coords.x;
+    item.relative_pos.y = coords.y;
 
     grid_check_return_t result = bs_grid_check(rect, 20, 50);
     bs_render_board_selection(20, 50, result.grid);
@@ -824,12 +877,39 @@ void bs_debug_render(void) {
     int offset_y = h - 225;
 
     DrawText("Debug Mode", offset_x + 10, offset_y + 10, 20, PINK);
+    DrawText("Bot (CPU, AI)", offset_x + 10, offset_y + 10 + 40, 10, WHITE);
     for(uint8_t y = 0; y < 10; y++) {
         for(uint8_t x = 0; x < 10; x++) {
             uint8_t v = (uint8_t)(255 * (uint8_t)(bs_bot->possibilities[x][y] * 100) / 100);
             Color c = (Color){ .r = v, .g = v, .b = v, .a = 255 };
 
-            DrawRectangle(offset_x + 10 + (11 * x), offset_y + 50 + (11 * y), 10, 10, c);
+            DrawRectangle(offset_x + 10 + (11 * x), offset_y + 50 + (11 * y) + 15, 10, 10, c);
+        }
+    }
+    DrawText("Player A", offset_x + 10 + (11 * 11), offset_y + 10 + 40, 10, WHITE);
+    for(uint8_t y = 0; y < 10; y++) {
+        for(uint8_t x = 0; x < 10; x++) {
+            Color c = (Color){ .r = 0, .g = 0, .b = 0, .a = 255 };
+
+            switch(bs_game_board->a_places[y][x]) {
+                case 1:
+                    c = RED;
+                    break;
+                case 2:
+                    c = GREEN;
+                    break;
+                case 3:
+                    c = PURPLE;
+                    break;
+                case 4:
+                    c = YELLOW;
+                    break;
+                case 5:
+                    c = BLUE;
+                    break;
+            }
+
+            DrawRectangle(offset_x + 10 + (11 * x) + (11 * 11), offset_y + 50 + (11 * y) + 15, 10, 10, c);
         }
     }
     //DrawText(bs_coords_to_string((Vector2){ .x = 1, .y = 1 }), offset_x + 10, offset_y + 50, 15, PINK);
