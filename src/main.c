@@ -122,12 +122,14 @@ typedef struct {
 typedef enum {
     GAME_STATE_MENU,
     GAME_STATE_SELECTION,
-    GAME_STATE_DESTRUCTION
+    GAME_STATE_DESTRUCTION,
+    GAME_STATE_END
 } game_state_t;
 
 typedef enum {
     BS_RENDER_FLAG_SELECTION,
-    BS_RENDER_FLAG_DESTRUCTION
+    BS_RENDER_FLAG_DESTRUCTION,
+    BS_RENDER_FLAG_WIN
 } game_render_flag_t;
 
 typedef enum {
@@ -163,12 +165,15 @@ void bs_render_ds(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  
 void bs_render_sb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  // Submarine
 void bs_render_pb(int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot);  // Patrol Boat
 void bs_render_item(uint8_t type, int32_t offset_x, int32_t offset_y, uint8_t r, uint8_t rot); // Render the selected item
+void bs_render_btn(Rectangle rect, Color normal, Color hover, Color clicked);
 
 // Functionality
+void bs_menu(void);
 void bs_selection(void);
 
 // Debug
 void bs_debug_render(void);
+void bs_debug_enable(bool enable);
 
 // Bot
 void bs_bot_init(bot_t* ptr);
@@ -177,6 +182,7 @@ void bs_bot_init(bot_t* ptr);
 #define SEABLUE     CLITERAL(Color){ 0, 105, 148, 255 }
 #define UNSELECTED  CLITERAL(Color){ 80, 80, 80, 128 }
 #define SELECTED    CLITERAL(Color){ 80, 80, 80, 200 }
+#define SELECTING   CLITERAL(Color){ 80, 80, 80, 240 }
 
 // Game definitions
 game_state_t bs_state = GAME_STATE_MENU;
@@ -184,6 +190,7 @@ board_t* bs_game_board;
 bot_t* bs_bot;
 
 bool debug = false;
+bool randomness = true;
 
 /// @brief The main function
 /// @param argc Args count
@@ -222,10 +229,7 @@ int main(int argc, char* argv[]) {
         switch(bs_state) {
             case GAME_STATE_MENU:
                 bs_render_base_menu();
-
-                if(IsKeyPressed(KEY_SPACE)) {
-                    bs_state = GAME_STATE_SELECTION;
-                }
+                bs_menu();
                 break;
             case GAME_STATE_SELECTION:
                 bs_render_board(bs_game_board, BS_RENDER_FLAG_SELECTION);
@@ -237,24 +241,18 @@ int main(int argc, char* argv[]) {
         }
 
 		if(IsKeyPressed(KEY_D)) {
-            if(debug) debug = false;
-            else debug = true;
-
-            if(debug) {
-                SetWindowSize(800, 650);
-            } else {
-                SetWindowSize(800, 450);
-            }
+            if(debug) bs_debug_enable(false);
+            else bs_debug_enable(true);
         }
 
-		if (IsKeyPressed(KEY_SPACE)) {
+		/*if (IsKeyPressed(KEY_SPACE)) {
 			DrawText("Space pressed!", 300, 300, 20, RED);
 		}
 
 		if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 			Vector2 pos = GetMousePosition();
 			DrawCircle(pos.x, pos.y, 10, RED);
-		}
+		}*/
 
         DrawText("A project by William Dawson (MrBisquit on GitHub)\thttps://wtdawson.info", 10, h - 20, 15, RAYWHITE);
 
@@ -532,13 +530,13 @@ Vector2 bs_get_grid_pos(int32_t offset_x, int32_t offset_y, Vector2 pos) {
 /// @brief Renders the main menu
 void bs_render_base_menu(void) {
     DrawText("BSBOT (Battleship Bot)", 10, 50, 25, BLUE);
-    DrawText("Press Space to start", 10, 100, 15, SKYBLUE);
+    /*DrawText("Press Space to start", 10, 100, 15, SKYBLUE);
 
     if(debug) {
         DrawText("Press D to disable debug", 10, 125, 15, GREEN);
     } else {
         DrawText("Press D to enable debug", 10, 125, 15, RED);
-    }
+    }*/
 }
 
 /// @brief Renders the board
@@ -750,13 +748,145 @@ void bs_render_item(uint8_t type, int32_t offset_x, int32_t offset_y, uint8_t r,
     }
 }
 
+/// @brief Renders a button (No text)
+/// @param rect Rectangle
+/// @param normal The colour normally
+/// @param hover The colour when hovered
+/// @param clicked The colour when clicked
+void bs_render_btn(Rectangle rect, Color normal, Color hover, Color clicked) {
+    Vector2 pos = GetMousePosition();
+
+    if(bs_point_in_rect(pos, rect)) {
+        if(IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+            DrawRectangle(rect.x, rect.y, rect.width, rect.height, clicked);
+        } else {
+            DrawRectangle(rect.x, rect.y, rect.width, rect.height, hover);
+        }
+    } else {
+        DrawRectangle(rect.x, rect.y, rect.width, rect.height, normal);
+    }
+}
+
 // Functionality
+/// @brief This is the functionality for the menu
+void bs_menu(void) {
+    Vector2 pos = GetMousePosition();
+
+    Rectangle start_btn = (Rectangle) {
+        .x = 10,
+        .y = 100,
+        .width = 200,
+        .height = 100
+    };
+
+    if(bs_point_in_rect(pos, start_btn)) {
+        if(IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+            DrawRectangle(start_btn.x, start_btn.y, start_btn.width, start_btn.height, SELECTING);
+        } else if(IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+            bs_state = GAME_STATE_SELECTION;
+        } else {
+            DrawRectangle(start_btn.x, start_btn.y, start_btn.width, start_btn.height, SELECTED);
+        }
+    } else {
+        DrawRectangle(start_btn.x, start_btn.y, start_btn.width, start_btn.height, UNSELECTED);
+    }
+
+    if(IsKeyReleased(KEY_SPACE)) {
+        bs_state = GAME_STATE_SELECTION;
+    }
+
+    DrawText("Play", start_btn.x + (start_btn.width / 2.75), start_btn.y + (start_btn.height / 4), 25, SKYBLUE);
+    DrawText("Or press Space", start_btn.x + (start_btn.width / 4.25), start_btn.y + (start_btn.height / 1.5), 15, WHITE);
+
+    /*if(debug) {
+        DrawText("Press D to disable debug", 10, 125, 15, GREEN);
+    } else {
+        DrawText("Press D to enable debug", 10, 125, 15, RED);
+    }*/
+
+    Rectangle debug_btn = (Rectangle) {
+        .x = 10,
+        .y = 210,
+        .width = 200,
+        .height = 25
+    };
+
+    if(bs_point_in_rect(pos, debug_btn)) {
+        if(IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+            DrawRectangle(debug_btn.x, debug_btn.y, debug_btn.width, debug_btn.height, SELECTING);
+        } else if(IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+            if(debug == true) bs_debug_enable(false);
+            else bs_debug_enable(true);
+        } else {
+            DrawRectangle(debug_btn.x, debug_btn.y, debug_btn.width, debug_btn.height, SELECTED);
+            DrawRectangle(debug_btn.x + debug_btn.width, debug_btn.y, 250, 50, SELECTED);
+            DrawText("This expands the window down and\nprovides information to help understand\nand debug the bot (CPU, AI).", debug_btn.x + debug_btn.width + 5, debug_btn.y + 5, 12, WHITE);
+        }
+    } else {
+        DrawRectangle(debug_btn.x, debug_btn.y, debug_btn.width, debug_btn.height, UNSELECTED);
+    }
+
+    DrawRectangleLines(debug_btn.x + 5, debug_btn.y + 5, 15, 15, WHITE);
+    if(debug) {
+        DrawRectangle(debug_btn.x + 7, debug_btn.y + 7, 11, 11, WHITE);
+    }
+
+    DrawText("Debug mode (D)", debug_btn.x + 5 + 20, debug_btn.y + 6, 12, WHITE);
+
+    Rectangle rand_btn = (Rectangle) {
+        .x = 10,
+        .y = 245,
+        .width = 200,
+        .height = 25
+    };
+
+    if(bs_point_in_rect(pos, rand_btn)) {
+        if(IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+            DrawRectangle(rand_btn.x, rand_btn.y, rand_btn.width, rand_btn.height, SELECTING);
+        } else if(IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+            if(randomness == true) randomness = false;
+            else randomness = true;
+        } else {
+            DrawRectangle(rand_btn.x, rand_btn.y, rand_btn.width, rand_btn.height, SELECTED);
+            DrawRectangle(rand_btn.x + rand_btn.width, rand_btn.y, 250, 50, SELECTED);
+            DrawText("When enabled (by default) the bot will\npick from 3 moves, and choose between\nthem randomly.", rand_btn.x + rand_btn.width + 5, rand_btn.y + 5, 12, WHITE);
+        }
+    } else {
+        DrawRectangle(rand_btn.x, rand_btn.y, rand_btn.width, rand_btn.height, UNSELECTED);
+    }
+
+    DrawRectangleLines(rand_btn.x + 5, rand_btn.y + 5, 15, 15, WHITE);
+    if(randomness) {
+        DrawRectangle(rand_btn.x + 7, rand_btn.y + 7, 11, 11, WHITE);
+    }
+
+    DrawText("Randomness", rand_btn.x + 5 + 20, rand_btn.y + 6, 12, WHITE);
+}
+
 /// @brief This is the functionality for the selection
 void bs_selection(void) {
     static uint8_t selected_vehicle = 0;
     static Vector2 selected_vec = { .x = 0, .y = 0 };
     static uint8_t selected_rot = 0; // 0 = Horizontal, 1 = Vertical
     static item_t item;
+
+    int w = GetScreenWidth();
+    int h = GetScreenHeight();
+
+    Rectangle continue_btn = (Rectangle) {
+        .x = (w / 2) + 20,
+        .y = h - 75,
+        .width = 350,
+        .height = 25
+    };
+
+    bs_render_btn(continue_btn, UNSELECTED, SELECTED, SELECTING);
+    DrawText("Continue", continue_btn.x + (continue_btn.width / 2.25), continue_btn.y + 7, 12, WHITE); // This still feels off slightly and it's bugging me
+    if(bs_point_in_rect(GetMousePosition(), continue_btn) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+        // TODO: Add checks first
+
+        bs_state = GAME_STATE_DESTRUCTION;
+    }
 
     if(IsKeyPressed(KEY_ONE)) {
         selected_vehicle = PLACE_AC;
@@ -913,6 +1043,16 @@ void bs_debug_render(void) {
         }
     }
     //DrawText(bs_coords_to_string((Vector2){ .x = 1, .y = 1 }), offset_x + 10, offset_y + 50, 15, PINK);
+}
+
+void bs_debug_enable(bool enable) {
+    if(enable == true) {
+        debug = true;
+        SetWindowSize(800, 650);
+    } else {
+        debug = false;
+        SetWindowSize(800, 450);
+    }
 }
 
 /*
